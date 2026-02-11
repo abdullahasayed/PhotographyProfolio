@@ -15,6 +15,16 @@ const closeBtn = document.getElementById('print-close');
 
 let targetPhotoId = null;
 
+function applySeasonMood() {
+  const seasonClasses = ['season-spring', 'season-summer', 'season-autumn', 'season-winter'];
+  document.body.classList.remove(...seasonClasses);
+  document.body.classList.add('season-page');
+
+  if (seasonClasses.includes(`season-${season}`)) {
+    document.body.classList.add(`season-${season}`);
+  }
+}
+
 function openModal(photo) {
   targetPhotoId = photo.id;
   printTitle.textContent = `Request Print: ${photo.title}`;
@@ -31,6 +41,11 @@ function closeModal() {
   modal.setAttribute('aria-hidden', 'true');
 }
 
+function likeButtonText(photo) {
+  const likes = Number(photo.likes || 0);
+  return photo.likedByViewer ? `Liked ${likes}` : `Like ${likes}`;
+}
+
 function cardTemplate(photo) {
   return `
     <article class="photo-card" data-photo-id="${escapeHtml(photo.id)}">
@@ -38,7 +53,7 @@ function cardTemplate(photo) {
         <img src="${escapeHtml(imageOrPlaceholder(photo.imageUrl, photo.title))}" alt="${escapeHtml(photo.title)}" loading="lazy" />
       </a>
       <div class="hover-tools">
-        <button class="min-btn like-btn" type="button" data-id="${escapeHtml(photo.id)}">Like ${escapeHtml(photo.likes || 0)}</button>
+        <button class="min-btn like-btn${photo.likedByViewer ? ' is-liked' : ''}" type="button" data-id="${escapeHtml(photo.id)}" ${photo.likedByViewer ? 'disabled aria-disabled="true"' : ''}>${escapeHtml(likeButtonText(photo))}</button>
         <button class="min-btn print-btn" type="button" data-id="${escapeHtml(photo.id)}">Request Print</button>
       </div>
       <div class="photo-meta">
@@ -56,6 +71,7 @@ async function loadGallery() {
     return;
   }
 
+  applySeasonMood();
   title.textContent = `${seasonLabel[season] || season} ${year}`;
 
   try {
@@ -73,14 +89,22 @@ async function loadGallery() {
       button.addEventListener('click', async (event) => {
         event.preventDefault();
         event.stopPropagation();
+
+        if (button.disabled) {
+          return;
+        }
+
         const photoId = button.dataset.id;
+        const previousText = button.textContent;
         try {
           const result = await fetchJson(`/api/photos/${photoId}/like`, { method: 'POST' });
-          button.textContent = `Like ${result.likes}`;
+          button.textContent = `Liked ${result.likes}`;
+          button.disabled = true;
+          button.classList.add('is-liked');
         } catch (error) {
           button.textContent = error.message;
           setTimeout(() => {
-            button.textContent = 'Like';
+            button.textContent = previousText;
           }, 1800);
         }
       });

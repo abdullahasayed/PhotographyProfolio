@@ -26,7 +26,7 @@
 
       <section id="login-shell" class="form-shell">
         <h2>Admin Login</h2>
-        <p class="note">Set the password using the <code>ADMIN_PASSWORD</code> environment variable.</p>
+        <p class="note">Set the password in <code>.env</code> as <code>ADMIN_PASSWORD=your-password</code> and restart the server after changes.</p>
         <form id="login-form" class="form-grid">
           <label class="full">
             Password
@@ -45,54 +45,86 @@
           <button id="logout-btn" type="button" class="min-btn">Log Out</button>
         </div>
 
-        <form id="upload-form" class="form-grid" enctype="multipart/form-data">
-          <label class="full">
-            Photo File
-            <input name="photo" type="file" accept="image/*" required />
-          </label>
+        <div class="admin-grid">
+          <section class="admin-card">
+            <h3>Edit Profile</h3>
+            <form id="profile-form" class="form-grid" enctype="multipart/form-data">
+              <label class="full">
+                Display Name
+                <input name="displayName" type="text" maxlength="120" required />
+              </label>
 
-          <label>
-            Title
-            <input name="title" type="text" maxlength="120" required />
-          </label>
+              <label class="full">
+                About
+                <textarea name="about" maxlength="2400" placeholder="Write a short introduction and artistic statement." required></textarea>
+              </label>
 
-          <label>
-            Date Taken
-            <input name="dateTaken" type="date" />
-          </label>
+              <label class="full">
+                Portrait Photo
+                <input name="profilePhoto" type="file" accept="image/*" />
+              </label>
 
-          <label>
-            Season
-            <select name="season" required>
-              <option value="winter">Winter</option>
-              <option value="spring">Spring</option>
-              <option value="summer">Summer</option>
-              <option value="autumn">Autumn</option>
-            </select>
-          </label>
+              <img id="profile-preview" class="profile-preview" alt="Profile preview" />
 
-          <label>
-            Year
-            <input name="year" type="number" min="1900" max="2100" required />
-          </label>
+              <div class="full" style="display: flex; gap: 0.6rem; align-items: center">
+                <button type="submit" class="submit-btn">Save Profile</button>
+                <span id="profile-status" class="status"></span>
+              </div>
+            </form>
+          </section>
 
-          <label class="full">
-            Location
-            <input name="location" type="text" maxlength="120" placeholder="Optional" />
-          </label>
+          <section class="admin-card">
+            <h3>Upload Photo</h3>
+            <form id="upload-form" class="form-grid" enctype="multipart/form-data">
+              <label class="full">
+                Photo File
+                <input name="photo" type="file" accept="image/*" required />
+              </label>
 
-          <label class="full">
-            Blurb / Field Note
-            <textarea name="blurb" maxlength="2000" placeholder="What happened in this moment? Light, behavior, weather, emotion..."></textarea>
-          </label>
+              <label>
+                Title
+                <input name="title" type="text" maxlength="120" required />
+              </label>
 
-          <div class="full" style="display: flex; gap: 0.6rem; align-items: center">
-            <button type="submit" class="submit-btn">Upload Photo</button>
-            <span id="upload-status" class="status"></span>
-          </div>
-        </form>
+              <label>
+                Date Taken
+                <input name="dateTaken" type="date" />
+              </label>
 
-        <p class="note" style="margin-top: 1rem">Uploaded photos are immediately added to the timeline.</p>
+              <label>
+                Season
+                <select name="season" required>
+                  <option value="winter">Winter</option>
+                  <option value="spring">Spring</option>
+                  <option value="summer">Summer</option>
+                  <option value="autumn">Autumn</option>
+                </select>
+              </label>
+
+              <label>
+                Year
+                <input name="year" type="number" min="1900" max="2100" required />
+              </label>
+
+              <label class="full">
+                Location
+                <input name="location" type="text" maxlength="120" placeholder="Optional" />
+              </label>
+
+              <label class="full">
+                Blurb / Field Note
+                <textarea name="blurb" maxlength="2000" placeholder="What happened in this moment? Light, behavior, weather, emotion..."></textarea>
+              </label>
+
+              <div class="full" style="display: flex; gap: 0.6rem; align-items: center">
+                <button type="submit" class="submit-btn">Upload Photo</button>
+                <span id="upload-status" class="status"></span>
+              </div>
+            </form>
+          </section>
+        </div>
+
+        <p class="note" style="margin-top: 1rem">Uploaded photos are immediately added to the timeline. If login fails, verify <code>.env</code> and restart the server.</p>
       </section>
     </main>
 

@@ -6,6 +6,11 @@ const metaEl = document.getElementById('photo-meta');
 const backLink = document.getElementById('back-link');
 const shell = document.getElementById('photo-shell');
 
+function likeButtonText(photo) {
+  const likes = Number(photo.likes || 0);
+  return photo.likedByViewer ? `Liked ${likes}` : `Like ${likes}`;
+}
+
 function buildPhotoView(photo) {
   backLink.href = `/season.html?season=${encodeURIComponent(photo.season)}&year=${encodeURIComponent(photo.year)}`;
   backLink.textContent = `${seasonLabel[photo.season] || photo.season} ${photo.year}`;
@@ -16,7 +21,7 @@ function buildPhotoView(photo) {
     <article class="media-stage">
       <img src="${escapeHtml(imageOrPlaceholder(photo.imageUrl, photo.title))}" alt="${escapeHtml(photo.title)}" />
       <div class="hover-tools">
-        <button id="like" class="min-btn" type="button">Like ${escapeHtml(photo.likes || 0)}</button>
+        <button id="like" class="min-btn${photo.likedByViewer ? ' is-liked' : ''}" type="button" ${photo.likedByViewer ? 'disabled aria-disabled="true"' : ''}>${escapeHtml(likeButtonText(photo))}</button>
         <button id="print" class="min-btn" type="button">Request Print</button>
       </div>
     </article>
@@ -67,9 +72,16 @@ function buildPhotoView(photo) {
 
   likeBtn.addEventListener('click', async (event) => {
     event.stopPropagation();
+
+    if (likeBtn.disabled) {
+      return;
+    }
+
     try {
       const result = await fetchJson(`/api/photos/${photo.id}/like`, { method: 'POST' });
-      likeBtn.textContent = `Like ${result.likes}`;
+      likeBtn.textContent = `Liked ${result.likes}`;
+      likeBtn.disabled = true;
+      likeBtn.classList.add('is-liked');
     } catch (error) {
       likeBtn.textContent = error.message;
     }

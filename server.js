@@ -2,13 +2,58 @@ const crypto = require('crypto');
 const express = require('express');
 const cookieParser = require('cookie-parser');
 const multer = require('multer');
+const fsSync = require('fs');
 const fs = require('fs/promises');
 const path = require('path');
+
+function loadDotEnvFallback(filePath) {
+  try {
+    const raw = fsSync.readFileSync(filePath, 'utf8');
+    const lines = raw.split(/\r?\n/);
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('#')) {
+        continue;
+      }
+
+      const separator = trimmed.indexOf('=');
+      if (separator < 1) {
+        continue;
+      }
+
+      const key = trimmed.slice(0, separator).trim();
+      if (!key || process.env[key] !== undefined) {
+        continue;
+      }
+
+      const value = trimmed.slice(separator + 1).trim().replace(/^['"]|['"]$/g, '');
+      process.env[key] = value;
+    }
+  } catch {
+    // Ignore missing .env files. Environment variables may be provided by the shell.
+  }
+}
+
+let dotenvLoaded = false;
+try {
+  require('dotenv').config();
+  dotenvLoaded = true;
+} catch (error) {
+  if (error.code !== 'MODULE_NOT_FOUND') {
+    console.warn('Failed to load .env file.', error);
+  }
+}
+
+if (!dotenvLoaded) {
+  loadDotEnvFallback(path.join(__dirname, '.env'));
+}
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'change-me';
 const SESSION_SECRET = process.env.SESSION_SECRET || 'wildlife-gallery-secret';
+const LIKE_ID_SALT = process.env.LIKE_ID_SALT || SESSION_SECRET;
 const COOKIE_NAME = 'wildlight_admin';
 
 const ROOT = __dirname;
@@ -16,8 +61,15 @@ const DATA_DIR = path.join(ROOT, 'data');
 const UPLOAD_DIR = path.join(ROOT, 'uploads');
 const PHOTOS_FILE = path.join(DATA_DIR, 'photos.json');
 const PRINT_REQUESTS_FILE = path.join(DATA_DIR, 'print-requests.json');
+const PROFILE_FILE = path.join(DATA_DIR, 'profile.json');
+const LIKE_CLAIMS_FILE = path.join(DATA_DIR, 'like-claims.json');
 
 const ALLOWED_SEASONS = ['winter', 'spring', 'summer', 'autumn'];
+const TIMELINE_SEASONS = ['spring', 'summer', 'autumn', 'winter'];
+const SEASON_INDEX = TIMELINE_SEASONS.reduce((map, season, index) => ({ ...map, [season]: index }), {});
+
+const TIMELINE_START = { season: 'spring', year: 2023 };
+const LIKES_RESET_MIGRATION_KEY = 'likesResetV1';
 
 app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ extended: true }));
@@ -45,6 +97,48 @@ function requireAuth(req, res, next) {
   return next();
 }
 
+function normalizeProfile(value) {
+  const profile = value && typeof value === 'object' ? value : {};
+  return {
+    displayName: String(profile.displayName || 'Wildlight Photographer').slice(0, 120),
+    about: String(profile.about || 'A seasonal visual archive built around light, habitat, and patient observation.').slice(0, 2400),
+    imageUrl: String(profile.imageUrl || '').slice(0, 500),
+    updatedAt: String(profile.updatedAt || new Date().toISOString())
+  };
+}
+
+function defaultLikeClaims() {
+  return {
+    migrations: { [LIKES_RESET_MIGRATION_KEY]: false },
+    claimsByPhoto: {}
+  };
+}
+
+function normalizeLikeClaims(value) {
+  const claims = defaultLikeClaims();
+
+  if (!value || typeof value !== 'object') {
+    return claims;
+  }
+
+  const migrations = value.migrations && typeof value.migrations === 'object' ? value.migrations : {};
+  claims.migrations[LIKES_RESET_MIGRATION_KEY] = Boolean(migrations[LIKES_RESET_MIGRATION_KEY]);
+
+  const claimsByPhoto = value.claimsByPhoto && typeof value.claimsByPhoto === 'object' ? value.claimsByPhoto : {};
+  for (const [photoId, identityList] of Object.entries(claimsByPhoto)) {
+    if (!Array.isArray(identityList)) {
+      continue;
+    }
+
+    const cleanIdentities = [...new Set(identityList.map((item) => String(item || '').trim()).filter(Boolean))];
+    if (cleanIdentities.length) {
+      claims.claimsByPhoto[String(photoId)] = cleanIdentities;
+    }
+  }
+
+  return claims;
+}
+
 async function ensureFiles() {
   await fs.mkdir(DATA_DIR, { recursive: true });
   await fs.mkdir(UPLOAD_DIR, { recursive: true });
@@ -65,7 +159,7 @@ async function ensureFiles() {
             location: 'Northern Forest Edge',
             blurb:
               'A red fox paused as dawn snow settled over the grassline. The scene felt almost monochrome except for its coat.',
-            likes: 14,
+            likes: 0,
             imageUrl:
               'https://images.unsplash.com/photo-1516934024742-b461fba47600?auto=format&fit=crop&w=1200&q=80',
             createdAt: new Date().toISOString()
@@ -79,7 +173,7 @@ async function ensureFiles() {
             location: 'Lowland Marsh',
             blurb:
               'The marsh had just opened after a long winter. The heron stood perfectly still while wind moved only the reeds.',
-            likes: 22,
+            likes: 0,
             imageUrl:
               'https://images.unsplash.com/photo-1520808663317-647b476a81b9?auto=format&fit=crop&w=1200&q=80',
             createdAt: new Date().toISOString()
@@ -93,7 +187,7 @@ async function ensureFiles() {
             location: 'High Basin Trail',
             blurb:
               'Backlit dust gave the valley a bronze haze. The elk moved through it in slow, deliberate steps.',
-            likes: 31,
+            likes: 0,
             imageUrl:
               'https://images.unsplash.com/photo-1536514498073-50e69d39c6cf?auto=format&fit=crop&w=1200&q=80',
             createdAt: new Date().toISOString()
@@ -107,7 +201,7 @@ async function ensureFiles() {
             location: 'Birch Creek Reserve',
             blurb:
               'Leaves were already copper, and the owlet watched from a split trunk as light broke through fog.',
-            likes: 19,
+            likes: 0,
             imageUrl:
               'https://images.unsplash.com/photo-1552728089-57bdde30beb3?auto=format&fit=crop&w=1200&q=80',
             createdAt: new Date().toISOString()
@@ -124,6 +218,20 @@ async function ensureFiles() {
   } catch {
     await fs.writeFile(PRINT_REQUESTS_FILE, '[]');
   }
+
+  try {
+    await fs.access(PROFILE_FILE);
+  } catch {
+    await fs.writeFile(PROFILE_FILE, JSON.stringify(normalizeProfile({}), null, 2));
+  }
+
+  try {
+    await fs.access(LIKE_CLAIMS_FILE);
+  } catch {
+    await fs.writeFile(LIKE_CLAIMS_FILE, JSON.stringify(defaultLikeClaims(), null, 2));
+  }
+
+  await runMigrations();
 }
 
 async function readJson(file, fallback) {
@@ -139,9 +247,30 @@ async function writeJson(file, value) {
   await fs.writeFile(file, JSON.stringify(value, null, 2));
 }
 
-function seasonOrder(season) {
-  const index = ALLOWED_SEASONS.indexOf(String(season || '').toLowerCase());
-  return index === -1 ? 999 : index;
+function seasonProgress(year, season) {
+  const seasonIndex = SEASON_INDEX[String(season || '').toLowerCase()];
+  if (!Number.isFinite(Number(year)) || seasonIndex === undefined) {
+    return Number.NEGATIVE_INFINITY;
+  }
+  return Number(year) * 10 + seasonIndex;
+}
+
+function buildSeasonRange(start, end) {
+  const items = [];
+  let currentYear = start.year;
+  let currentIndex = SEASON_INDEX[start.season];
+  const endProgress = seasonProgress(end.year, end.season);
+
+  while (seasonProgress(currentYear, TIMELINE_SEASONS[currentIndex]) <= endProgress) {
+    items.push({ year: currentYear, season: TIMELINE_SEASONS[currentIndex] });
+    currentIndex += 1;
+    if (currentIndex >= TIMELINE_SEASONS.length) {
+      currentIndex = 0;
+      currentYear += 1;
+    }
+  }
+
+  return items;
 }
 
 function toTitleCase(text) {
@@ -153,6 +282,60 @@ function toTitleCase(text) {
 function safeTimestamp(value) {
   const time = Date.parse(value || '');
   return Number.isNaN(time) ? 0 : time;
+}
+
+function getSeasonFromDate(value) {
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.valueOf())) {
+    return { season: 'winter', year: new Date().getFullYear() };
+  }
+
+  const month = date.getMonth() + 1;
+  const year = date.getFullYear();
+
+  if (month >= 3 && month <= 5) return { season: 'spring', year };
+  if (month >= 6 && month <= 8) return { season: 'summer', year };
+  if (month >= 9 && month <= 11) return { season: 'autumn', year };
+  return { season: 'winter', year };
+}
+
+function getViewerIdentityHash(req) {
+  const ip = req.ip || req.socket?.remoteAddress || 'unknown';
+  return crypto.createHash('sha256').update(`${LIKE_ID_SALT}:${ip}`).digest('hex');
+}
+
+function getPhotoLikeClaims(claimsDoc, photoId) {
+  const list = claimsDoc.claimsByPhoto[String(photoId)] || [];
+  return new Set(list);
+}
+
+function withViewerLikeState(photo, claimsDoc, viewerIdentityHash) {
+  const likeSet = getPhotoLikeClaims(claimsDoc, photo.id);
+  return {
+    ...photo,
+    likes: Number(photo.likes || 0),
+    likedByViewer: likeSet.has(viewerIdentityHash)
+  };
+}
+
+async function runMigrations() {
+  const likesDocRaw = await readJson(LIKE_CLAIMS_FILE, defaultLikeClaims());
+  const likesDoc = normalizeLikeClaims(likesDocRaw);
+
+  if (!likesDoc.migrations[LIKES_RESET_MIGRATION_KEY]) {
+    const photos = await readJson(PHOTOS_FILE, []);
+    const migratedPhotos = photos.map((photo) => ({ ...photo, likes: 0 }));
+
+    likesDoc.claimsByPhoto = {};
+    likesDoc.migrations[LIKES_RESET_MIGRATION_KEY] = true;
+
+    await writeJson(PHOTOS_FILE, migratedPhotos);
+    await writeJson(LIKE_CLAIMS_FILE, likesDoc);
+    return;
+  }
+
+  // Keep the claims file normalized to prevent malformed values from causing runtime issues.
+  await writeJson(LIKE_CLAIMS_FILE, likesDoc);
 }
 
 const storage = multer.diskStorage({
@@ -177,6 +360,25 @@ const upload = multer({
 
 app.get('/api/me', (req, res) => {
   res.json({ authenticated: isAuthed(req) });
+});
+
+app.get('/api/profile', async (_req, res) => {
+  const profile = normalizeProfile(await readJson(PROFILE_FILE, {}));
+  res.json(profile);
+});
+
+app.post('/api/profile', requireAuth, upload.single('profilePhoto'), async (req, res) => {
+  const currentProfile = normalizeProfile(await readJson(PROFILE_FILE, {}));
+
+  const nextProfile = {
+    displayName: String(req.body?.displayName || currentProfile.displayName).slice(0, 120),
+    about: String(req.body?.about || currentProfile.about).slice(0, 2400),
+    imageUrl: req.file ? `/uploads/${req.file.filename}` : currentProfile.imageUrl,
+    updatedAt: new Date().toISOString()
+  };
+
+  await writeJson(PROFILE_FILE, nextProfile);
+  return res.json(nextProfile);
 });
 
 app.post('/api/login', (req, res) => {
@@ -205,6 +407,8 @@ app.get('/api/photos', async (req, res) => {
   const seasonFilter = String(req.query.season || '').toLowerCase();
   const yearFilter = Number.parseInt(req.query.year, 10);
   const photos = await readJson(PHOTOS_FILE, []);
+  const viewerIdentityHash = getViewerIdentityHash(req);
+  const claimsDoc = normalizeLikeClaims(await readJson(LIKE_CLAIMS_FILE, defaultLikeClaims()));
 
   let filtered = [...photos];
   if (seasonFilter) {
@@ -215,7 +419,7 @@ app.get('/api/photos', async (req, res) => {
   }
 
   filtered.sort((a, b) => safeTimestamp(b.dateTaken || b.createdAt) - safeTimestamp(a.dateTaken || a.createdAt));
-  res.json(filtered);
+  res.json(filtered.map((photo) => withViewerLikeState(photo, claimsDoc, viewerIdentityHash)));
 });
 
 app.get('/api/photos/:id', async (req, res) => {
@@ -226,14 +430,21 @@ app.get('/api/photos/:id', async (req, res) => {
     return res.status(404).json({ error: 'Photo not found.' });
   }
 
-  return res.json(photo);
+  const viewerIdentityHash = getViewerIdentityHash(req);
+  const claimsDoc = normalizeLikeClaims(await readJson(LIKE_CLAIMS_FILE, defaultLikeClaims()));
+
+  return res.json(withViewerLikeState(photo, claimsDoc, viewerIdentityHash));
 });
 
 app.get('/api/seasons', async (_req, res) => {
   const photos = await readJson(PHOTOS_FILE, []);
-  const map = new Map();
+  const seasonMap = new Map();
 
-  for (const item of photos) {
+  const sortedPhotos = [...photos].sort(
+    (a, b) => safeTimestamp(b.dateTaken || b.createdAt) - safeTimestamp(a.dateTaken || a.createdAt)
+  );
+
+  for (const item of sortedPhotos) {
     const season = String(item.season || '').toLowerCase();
     const year = Number(item.year);
     if (!ALLOWED_SEASONS.includes(season) || Number.isNaN(year)) {
@@ -241,31 +452,54 @@ app.get('/api/seasons', async (_req, res) => {
     }
 
     const key = `${season}-${year}`;
-    if (!map.has(key)) {
-      map.set(key, {
+    if (!seasonMap.has(key)) {
+      seasonMap.set(key, {
         season,
         seasonLabel: toTitleCase(season),
         year,
         count: 0,
-        coverImage: item.imageUrl
+        coverImage: item.imageUrl || ''
       });
     }
 
-    const current = map.get(key);
+    const current = seasonMap.get(key);
     current.count += 1;
     if (!current.coverImage) {
-      current.coverImage = item.imageUrl;
+      current.coverImage = item.imageUrl || '';
     }
   }
 
-  const seasons = [...map.values()].sort((a, b) => {
-    if (a.year !== b.year) {
-      return b.year - a.year;
-    }
-    return seasonOrder(a.season) - seasonOrder(b.season);
-  });
+  const nowSeason = getSeasonFromDate(new Date());
+  const latestPhotoSeason = sortedPhotos
+    .map((photo) => ({ season: String(photo.season || '').toLowerCase(), year: Number(photo.year) }))
+    .filter((entry) => ALLOWED_SEASONS.includes(entry.season) && !Number.isNaN(entry.year))
+    .sort((a, b) => seasonProgress(b.year, b.season) - seasonProgress(a.year, a.season))[0];
 
-  res.json(seasons);
+  const end =
+    latestPhotoSeason && seasonProgress(latestPhotoSeason.year, latestPhotoSeason.season) > seasonProgress(nowSeason.year, nowSeason.season)
+      ? latestPhotoSeason
+      : nowSeason;
+
+  const safeEnd =
+    seasonProgress(end.year, end.season) < seasonProgress(TIMELINE_START.year, TIMELINE_START.season)
+      ? TIMELINE_START
+      : end;
+
+  const range = buildSeasonRange(TIMELINE_START, safeEnd)
+    .map((entry) => {
+      const key = `${entry.season}-${entry.year}`;
+      const fromPhotos = seasonMap.get(key);
+      return {
+        season: entry.season,
+        seasonLabel: toTitleCase(entry.season),
+        year: entry.year,
+        count: fromPhotos ? fromPhotos.count : 0,
+        coverImage: fromPhotos ? fromPhotos.coverImage : ''
+      };
+    })
+    .sort((a, b) => seasonProgress(b.year, b.season) - seasonProgress(a.year, a.season));
+
+  res.json(range);
 });
 
 app.post('/api/photos/:id/like', async (req, res) => {
@@ -276,10 +510,21 @@ app.post('/api/photos/:id/like', async (req, res) => {
     return res.status(404).json({ error: 'Photo not found.' });
   }
 
-  photos[index].likes = Number(photos[index].likes || 0) + 1;
-  await writeJson(PHOTOS_FILE, photos);
+  const viewerIdentityHash = getViewerIdentityHash(req);
+  const claimsDoc = normalizeLikeClaims(await readJson(LIKE_CLAIMS_FILE, defaultLikeClaims()));
+  const photoLikeClaims = getPhotoLikeClaims(claimsDoc, req.params.id);
 
-  return res.json({ likes: photos[index].likes });
+  if (photoLikeClaims.has(viewerIdentityHash)) {
+    return res.json({ likes: Number(photos[index].likes || 0), liked: false });
+  }
+
+  photoLikeClaims.add(viewerIdentityHash);
+  claimsDoc.claimsByPhoto[req.params.id] = [...photoLikeClaims];
+
+  photos[index].likes = Number(photos[index].likes || 0) + 1;
+  await Promise.all([writeJson(PHOTOS_FILE, photos), writeJson(LIKE_CLAIMS_FILE, claimsDoc)]);
+
+  return res.json({ likes: photos[index].likes, liked: true });
 });
 
 app.post('/api/photos/:id/request-print', async (req, res) => {

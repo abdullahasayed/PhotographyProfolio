@@ -1,4 +1,4 @@
-import { fetchJson } from './utils.js';
+import { fetchJson, imageOrPlaceholder } from './utils.js';
 
 const loginShell = document.getElementById('login-shell');
 const uploadShell = document.getElementById('upload-shell');
@@ -6,14 +6,38 @@ const loginForm = document.getElementById('login-form');
 const loginStatus = document.getElementById('login-status');
 const uploadForm = document.getElementById('upload-form');
 const uploadStatus = document.getElementById('upload-status');
+const profileForm = document.getElementById('profile-form');
+const profileStatus = document.getElementById('profile-status');
+const profilePreview = document.getElementById('profile-preview');
 const logoutBtn = document.getElementById('logout-btn');
-const dateTakenInput = uploadForm?.querySelector('input[name=\"dateTaken\"]');
-const seasonInput = uploadForm?.querySelector('select[name=\"season\"]');
-const yearInput = uploadForm?.querySelector('input[name=\"year\"]');
+
+const dateTakenInput = uploadForm?.querySelector('input[name="dateTaken"]');
+const seasonInput = uploadForm?.querySelector('select[name="season"]');
+const yearInput = uploadForm?.querySelector('input[name="year"]');
 
 function setStatus(element, message, type = '') {
+  if (!element) return;
   element.textContent = message;
   element.className = `status${type ? ` ${type}` : ''}`;
+}
+
+function updateProfilePreview(profile) {
+  if (!profilePreview) return;
+
+  const label = profile?.displayName || 'Photographer';
+  profilePreview.src = imageOrPlaceholder(profile?.imageUrl, label);
+  profilePreview.alt = `${label} portrait preview`;
+}
+
+async function loadProfile() {
+  if (!profileForm) {
+    return;
+  }
+
+  const profile = await fetchJson('/api/profile');
+  profileForm.querySelector('input[name="displayName"]').value = profile.displayName || '';
+  profileForm.querySelector('textarea[name="about"]').value = profile.about || '';
+  updateProfilePreview(profile);
 }
 
 async function refreshAuthState() {
@@ -21,6 +45,10 @@ async function refreshAuthState() {
   const authed = Boolean(me.authenticated);
   loginShell.hidden = authed;
   uploadShell.hidden = !authed;
+
+  if (authed) {
+    await loadProfile();
+  }
 }
 
 loginForm.addEventListener('submit', async (event) => {
@@ -37,7 +65,11 @@ loginForm.addEventListener('submit', async (event) => {
     loginForm.reset();
     await refreshAuthState();
   } catch (error) {
-    setStatus(loginStatus, error.message, 'error');
+    const extra =
+      error.message === 'Invalid password.'
+        ? ' Check .env ADMIN_PASSWORD value and restart the server after changing it.'
+        : '';
+    setStatus(loginStatus, `${error.message}${extra}`, 'error');
   }
 });
 
@@ -54,6 +86,24 @@ uploadForm.addEventListener('submit', async (event) => {
     setStatus(uploadStatus, `Uploaded: ${photo.title}`, 'success');
   } catch (error) {
     setStatus(uploadStatus, error.message, 'error');
+  }
+});
+
+profileForm.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const formData = new FormData(profileForm);
+
+  try {
+    const profile = await fetchJson('/api/profile', {
+      method: 'POST',
+      body: formData
+    });
+
+    profileForm.querySelector('input[name="profilePhoto"]').value = '';
+    updateProfilePreview(profile);
+    setStatus(profileStatus, 'Profile updated.', 'success');
+  } catch (error) {
+    setStatus(profileStatus, error.message, 'error');
   }
 });
 
