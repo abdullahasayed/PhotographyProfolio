@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Upload Manager</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="site-shell">
+      <header class="topbar">
+        <a class="brand" href="/index.html">Wildlight Archive</a>
+        <nav class="nav-links" aria-label="Primary navigation">
+          <a href="/index.html">Timeline</a>
+          <a href="/admin.html">Upload</a>
+        </nav>
+      </header>
+
+      <section class="hero" style="margin-bottom: 1.4rem">
+        <div>
+          <span class="tag">Owner Console</span>
+          <h1>Upload new photographs into seasonal collections.</h1>
+        </div>
+        <p>Only authenticated owner sessions can upload photos. Visitors can view and request prints, but cannot add content.</p>
+      </section>
+
+      <section id="login-shell" class="form-shell">
+        <h2>Admin Login</h2>
+        <p class="note">Set the password using the <code>ADMIN_PASSWORD</code> environment variable.</p>
+        <form id="login-form" class="form-grid">
+          <label class="full">
+            Password
+            <input id="admin-password" type="password" autocomplete="current-password" required />
+          </label>
+          <div class="full" style="display: flex; gap: 0.6rem; align-items: center">
+            <button type="submit" class="submit-btn">Log In</button>
+            <span id="login-status" class="status"></span>
+          </div>
+        </form>
+      </section>
+
+      <section id="upload-shell" class="form-shell" hidden>
+        <div style="display: flex; justify-content: space-between; gap: 1rem; align-items: center">
+          <h2>Upload Photo</h2>
+          <button id="logout-btn" type="button" class="min-btn">Log Out</button>
+        </div>
+
+        <form id="upload-form" class="form-grid" enctype="multipart/form-data">
+          <label class="full">
+            Photo File
+            <input name="photo" type="file" accept="image/*" required />
+          </label>
+
+          <label>
+            Title
+            <input name="title" type="text" maxlength="120" required />
+          </label>
+
+          <label>
+            Date Taken
+            <input name="dateTaken" type="date" />
+          </label>
+
+          <label>
+            Season
+            <select name="season" required>
+              <option value="winter">Winter</option>
+              <option value="spring">Spring</option>
+              <option value="summer">Summer</option>
+              <option value="autumn">Autumn</option>
+            </select>
+          </label>
+
+          <label>
+            Year
+            <input name="year" type="number" min="1900" max="2100" required />
+          </label>
+
+          <label class="full">
+            Location
+            <input name="location" type="text" maxlength="120" placeholder="Optional" />
+          </label>
+
+          <label class="full">
+            Blurb / Field Note
+            <textarea name="blurb" maxlength="2000" placeholder="What happened in this moment? Light, behavior, weather, emotion..."></textarea>
+          </label>
+
+          <div class="full" style="display: flex; gap: 0.6rem; align-items: center">
+            <button type="submit" class="submit-btn">Upload Photo</button>
+            <span id="upload-status" class="status"></span>
+          </div>
+        </form>
+
+        <p class="note" style="margin-top: 1rem">Uploaded photos are immediately added to the timeline.</p>
+      </section>
+    </main>
+
+    <script type="module" src="/js/admin.js"></script>
+  </body>
+</html>

@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Wildlight Archive</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="site-shell">
+      <header class="topbar">
+        <a class="brand" href="/index.html">Wildlight Archive</a>
+        <nav class="nav-links" aria-label="Primary navigation">
+          <a href="/index.html">Timeline</a>
+          <a href="/admin.html">Upload</a>
+        </nav>
+      </header>
+
+      <section class="hero">
+        <div>
+          <span class="tag">Seasonal Wildlife Catalog</span>
+          <h1>Moments arranged by season, traced across years.</h1>
+        </div>
+        <p>
+          This archive is organized around winter, spring, summer, and autumn sessions. Browse the visual timeline to enter each season-year
+          collection.
+        </p>
+      </section>
+
+      <section class="timeline-wrap" aria-label="Season timeline">
+        <ul id="timeline" class="timeline-grid"></ul>
+        <div id="timeline-empty" class="empty-state" hidden>
+          No season collections yet. Use <a href="/admin.html">Upload</a> to add your first photo.
+        </div>
+      </section>
+    </main>
+
+    <script type="module" src="/js/index.js"></script>
+  </body>
+</html>

@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Season Collection</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="site-shell">
+      <header class="topbar">
+        <a class="brand" href="/index.html">Wildlight Archive</a>
+        <nav class="nav-links" aria-label="Primary navigation">
+          <a href="/index.html">Timeline</a>
+          <a href="/admin.html">Upload</a>
+        </nav>
+      </header>
+
+      <section>
+        <p class="crumb"><a href="/index.html">Timeline</a> / Collection</p>
+        <h1 id="season-title" class="section-title">Season Collection</h1>
+        <p id="season-subtitle" class="note">Loading photos...</p>
+      </section>
+
+      <section id="gallery" class="gallery-grid" aria-label="Photo gallery"></section>
+      <div id="gallery-empty" class="empty-state" hidden>No photos in this season yet.</div>
+    </main>
+
+    <div id="print-modal" class="modal" aria-hidden="true">
+      <div class="modal-card">
+        <button id="print-close" class="min-btn modal-close" type="button">Close</button>
+        <h3 id="print-title">Request Print</h3>
+        <p class="note">This request is saved for the gallery owner to review.</p>
+        <form id="print-form" class="form-grid">
+          <label>
+            Name
+            <input name="name" type="text" maxlength="80" required />
+          </label>
+          <label>
+            Email
+            <input name="email" type="email" maxlength="120" required />
+          </label>
+          <label class="full">
+            Note
+            <textarea name="note" maxlength="800" placeholder="Preferred print size, paper finish, framing details..."></textarea>
+          </label>
+          <div class="full" style="display: flex; gap: 0.6rem; align-items: center">
+            <button type="submit" class="submit-btn">Send Request</button>
+            <span id="print-status" class="status"></span>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <script type="module" src="/js/season.js"></script>
+  </body>
+</html>

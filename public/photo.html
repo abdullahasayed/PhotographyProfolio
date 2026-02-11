@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Photo Detail</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="site-shell">
+      <header class="topbar">
+        <a class="brand" href="/index.html">Wildlight Archive</a>
+        <nav class="nav-links" aria-label="Primary navigation">
+          <a href="/index.html">Timeline</a>
+          <a href="/admin.html">Upload</a>
+        </nav>
+      </header>
+
+      <section>
+        <p class="crumb"><a id="back-link" href="/index.html">Timeline</a> / Photo</p>
+        <h1 id="photo-title" class="section-title">Loading...</h1>
+        <p id="photo-meta" class="note"></p>
+      </section>
+
+      <section id="photo-shell"></section>
+    </main>
+
+    <script type="module" src="/js/photo.js"></script>
+  </body>
+</html>
