@@ -1,0 +1,50 @@
+[
+  {
+    "id": "8d663fd2-4f53-4d5b-a5d2-6c9d9dd22bb4",
+    "title": "Fox at First Frost",
+    "season": "winter",
+    "year": 2025,
+    "dateTaken": "2025-01-16",
+    "location": "Northern Forest Edge",
+    "blurb": "A red fox paused as dawn snow settled over the grassline. The scene felt almost monochrome except for its coat.",
+    "likes": 14,
+    "imageUrl": "https://images.unsplash.com/photo-1516934024742-b461fba47600?auto=format&fit=crop&w=1200&q=80",
+    "createdAt": "2026-02-11T17:20:56.026Z"
+  },
+  {
+    "id": "dda416a4-a9d2-4f98-ba5e-9c1129124bf4",
+    "title": "Heron at Meltwater",
+    "season": "spring",
+    "year": 2024,
+    "dateTaken": "2024-04-03",
+    "location": "Lowland Marsh",
+    "blurb": "The marsh had just opened after a long winter. The heron stood perfectly still while wind moved only the reeds.",
+    "likes": 22,
+    "imageUrl": "https://images.unsplash.com/photo-1520808663317-647b476a81b9?auto=format&fit=crop&w=1200&q=80",
+    "createdAt": "2026-02-11T17:20:56.026Z"
+  },
+  {
+    "id": "ba27b3eb-be2c-47f4-bc1d-c828fab86e11",
+    "title": "Elk in Evening Dust",
+    "season": "summer",
+    "year": 2024,
+    "dateTaken": "2024-07-19",
+    "location": "High Basin Trail",
+    "blurb": "Backlit dust gave the valley a bronze haze. The elk moved through it in slow, deliberate steps.",
+    "likes": 31,
+    "imageUrl": "https://images.unsplash.com/photo-1536514498073-50e69d39c6cf?auto=format&fit=crop&w=1200&q=80",
+    "createdAt": "2026-02-11T17:20:56.026Z"
+  },
+  {
+    "id": "62c7c87e-425d-476d-b8d8-83f6096b3f15",
+    "title": "Owlet in Birch Hollow",
+    "season": "autumn",
+    "year": 2023,
+    "dateTaken": "2023-10-09",
+    "location": "Birch Creek Reserve",
+    "blurb": "Leaves were already copper, and the owlet watched from a split trunk as light broke through fog.",
+    "likes": 19,
+    "imageUrl": "https://images.unsplash.com/photo-1552728089-57bdde30beb3?auto=format&fit=crop&w=1200&q=80",
+    "createdAt": "2026-02-11T17:20:56.026Z"
+  }
+]
