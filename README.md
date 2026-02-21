@@ -1,12 +1,6 @@
 # Wildlight Archive
 
-A multi-page wildlife photography gallery organized by seasonal collections, with:
-
-- Interactive timeline (Spring 2023 onward)
-- Season collection pages with artistic seasonal moods
-- Individual photo pages with field notes and print requests
-- Admin-managed uploads and profile editor
-- One-like-per-unique-viewer enforcement
+My personal photography profolio website: 
 
 ## Run
 
